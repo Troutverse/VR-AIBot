@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>AI 캐릭터와 대화</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@6.1.1/dist/aframe-extras.controls.min.js"></script>
     <style>
       #chat-box {
@@ -26,10 +26,16 @@
         padding: 5px;
         font-weight: bold;
       }
+      a-scene {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
     </style>
   </head>
   <body>
-
     <!-- 대화창 -->
     <div id="chat-box">
       <p><strong>AI:</strong> 안녕하세요! 무엇을 도와드릴까요?</p>
@@ -37,61 +43,97 @@
     </div>
 
     <a-scene vr-mode-ui="enabled: true" embedded>
-
       <!-- 바닥 -->
-      <a-plane rotation="-90 0 0" width="50" height="50" color="#555555"></a-plane>
+      <a-plane
+        rotation="-90 0 0"
+        width="50"
+        height="50"
+        color="#555555"
+      ></a-plane>
 
       <!-- 하늘 -->
       <a-sky color="#87CEEB"></a-sky>
 
       <!-- 건물 -->
-      <a-box position="-5 2 -10" depth="4" height="4" width="4" color="#a9a9a9"></a-box>
-      <a-box position="0 3 -15" depth="5" height="6" width="5" color="#808080"></a-box>
-      <a-box position="6 2.5 -12" depth="4" height="5" width="4" color="#696969"></a-box>
+      <a-box
+        position="-5 2 -10"
+        depth="4"
+        height="4"
+        width="4"
+        color="#a9a9a9"
+      ></a-box>
+      <a-box
+        position="0 3 -15"
+        depth="5"
+        height="6"
+        width="5"
+        color="#808080"
+      ></a-box>
+      <a-box
+        position="6 2.5 -12"
+        depth="4"
+        height="5"
+        width="4"
+        color="#696969"
+      ></a-box>
 
       <!-- 가로등 -->
-      <a-cylinder position="3 1 -5" radius="0.1" height="2" color="#333"></a-cylinder>
-      <a-sphere position="3 2.2 -5" radius="0.2" color="yellow" emissive="yellow"></a-sphere>
+      <a-cylinder
+        position="3 1 -5"
+        radius="0.1"
+        height="2"
+        color="#333"
+      ></a-cylinder>
+      <a-sphere
+        position="3 2.2 -5"
+        radius="0.2"
+        color="yellow"
+        emissive="yellow"
+      ></a-sphere>
 
       <!-- AI 캐릭터 -->
-      <a-entity 
+      <a-entity
         id="ai-bot"
         gltf-model="robot.glb"
         position="0 0 -3"
         scale="1 1 1"
-        rotation="0 180 0">
+        rotation="0 180 0"
+      >
       </a-entity>
 
       <!-- 이동 가능한 rig -->
       <a-entity id="rig" movement-controls position="0 0 5">
         <!-- 카메라: 키보드 이동 + 시선 제어 -->
-        <a-entity 
-          camera 
-          look-controls 
-          wasd-controls 
-          position="0 1.6 0">
+        <a-entity camera look-controls wasd-controls position="0 1.6 0">
         </a-entity>
 
         <!-- VR 컨트롤러 -->
-        <a-entity hand-controls="hand: left" oculus-touch-controls="hand: left" laser-controls></a-entity>
-        <a-entity hand-controls="hand: right" oculus-touch-controls="hand: right" laser-controls></a-entity>
+        <a-entity
+          hand-controls="hand: left"
+          oculus-touch-controls="hand: left"
+          laser-controls
+        ></a-entity>
+        <a-entity
+          hand-controls="hand: right"
+          oculus-touch-controls="hand: right"
+          laser-controls
+        ></a-entity>
       </a-entity>
-
     </a-scene>
 
     <script>
       // 클릭하면 대화창 열기
-      document.addEventListener('DOMContentLoaded', function () {
-        const aiBot = document.querySelector('#ai-bot');
-        const chatBox = document.getElementById('chat-box');
+      document.addEventListener("DOMContentLoaded", function () {
+        const aiBot = document.querySelector("#ai-bot");
+        const chatBox = document.getElementById("chat-box");
 
-        aiBot.addEventListener('click', function () {
-          chatBox.style.display = 'block';
+        aiBot.addEventListener("click", function () {
+          chatBox.style.display = "block";
         });
       });
 
       function closeChat() {
-        document.getElementById('chat-box').style.display = 'none';
+        document.getElementById("chat-box").style.display = "none";
       }
     </script>
   </body>
