@@ -2,72 +2,33 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>AI 캐릭터와 대화</title>
+    <title>VR</title>
+
+    <!-- 외부 CSS 추가 -->
+    <link rel="stylesheet" href="style.css" />
+
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@6.1.1/dist/aframe-extras.controls.min.js"></script>
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow: hidden;
-      }
-      a-scene {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
-      #chat-box {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 300px;
-        background: white;
-        border: 2px solid #444;
-        border-radius: 10px;
-        padding: 15px;
-        display: none;
-        font-family: sans-serif;
-        z-index: 10;
-      }
-      #chat-box button {
-        margin-top: 10px;
-        width: 100%;
-        padding: 5px;
-        font-weight: bold;
-      }
-    </style>
   </head>
   <body>
-    <!-- 대화창 -->
-    <div id="include-chatbox"></div>
-
-    <a-scene vr-mode-ui="enabled: true" embedded>
-      <a-assets>
-        <!-- 여기에 모델 등 리소스 미리로드할 수 있음 -->
-      </a-assets>
-
-      <!-- 각 요소 삽입 -->
-      <a-entity id="include-background"></a-entity>
-      <a-entity id="include-ai"></a-entity>
-      <a-entity id="include-camera"></a-entity>
-    </a-scene>
-
-    <!-- HTML 파일 include -->
     <script>
       async function include(id, file) {
         const res = await fetch(file);
-        const html = await res.text();
-        document.getElementById(id).innerHTML = html;
+        document.getElementById(id).innerHTML = await res.text();
       }
-
       include("include-chatbox", "chatbox.html");
       include("include-background", "background.html");
       include("include-ai", "ai.html");
       include("include-camera", "camera.html");
     </script>
+
+    <a-scene vr-mode-ui="enabled: true" embedded>
+      <a-assets></a-assets>
+
+      <a-entity id="include-background"></a-entity>
+      <a-entity id="include-ai"></a-entity>
+      <a-entity id="include-camera"></a-entity>
+      <a-entity id="include-chatbox"></a-entity>
+    </a-scene>
   </body>
 </html>
