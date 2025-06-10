@@ -1,0 +1,19 @@
+<div id="chat-box">
+  <p><strong>AI:</strong> 안녕하세요! 무엇을 도와드릴까요?</p>
+  <button onclick="closeChat()">닫기</button>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const aiBot = document.querySelector("#ai-bot");
+    const chatBox = document.getElementById("chat-box");
+
+    aiBot.addEventListener("click", function () {
+      chatBox.style.display = "block";
+    });
+  });
+
+  function closeChat() {
+    document.getElementById("chat-box").style.display = "none";
+  }
+</script>
