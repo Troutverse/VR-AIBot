@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>AI 캐릭터와 대화</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@6.1.1/dist/aframe-extras.controls.min.js"></script>
     <style>
       #chat-box {
         position: absolute;
@@ -35,7 +36,8 @@
       <button onclick="closeChat()">닫기</button>
     </div>
 
-    <a-scene>
+    <a-scene vr-mode-ui="enabled: true" embedded>
+
       <!-- 바닥 -->
       <a-plane rotation="-90 0 0" width="50" height="50" color="#555555"></a-plane>
 
@@ -60,10 +62,21 @@
         rotation="0 180 0">
       </a-entity>
 
-      <!-- 카메라 -->
-      <a-entity position="0 1.6 5">
-        <a-camera wasd-controls-enabled="true" look-controls-enabled="true"></a-camera>
+      <!-- 이동 가능한 rig -->
+      <a-entity id="rig" movement-controls position="0 0 5">
+        <!-- 카메라: 키보드 이동 + 시선 제어 -->
+        <a-entity 
+          camera 
+          look-controls 
+          wasd-controls 
+          position="0 1.6 0">
+        </a-entity>
+
+        <!-- VR 컨트롤러 -->
+        <a-entity hand-controls="hand: left" oculus-touch-controls="hand: left" laser-controls></a-entity>
+        <a-entity hand-controls="hand: right" oculus-touch-controls="hand: right" laser-controls></a-entity>
       </a-entity>
+
     </a-scene>
 
     <script>
