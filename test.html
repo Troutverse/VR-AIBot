@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>A-Frame Troika-Text 한글 예제</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-sky color="#222"></a-sky>
+
+      <a-troika-text
+        position="-1 2 -3"
+        value="성공적인 한글 예제입니다"
+        font="'Noto Sans KR'"
+        font-size="0.2"
+        color="white"
+      ></a-troika-text>
+    </a-scene>
+  </body>
+</html>

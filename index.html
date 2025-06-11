@@ -3,32 +3,266 @@
   <head>
     <meta charset="utf-8" />
     <title>VR</title>
-
-    <!-- 외부 CSS 추가 -->
     <link rel="stylesheet" href="style.css" />
-
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@6.1.1/dist/aframe-extras.controls.min.js"></script>
+    <script src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"></script>
+
+    <style>
+      .overlay-ui {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        z-index: 10;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #character-settings-container {
+        top: 20px;
+      }
+      #chat-bar {
+        bottom: 20px;
+      }
+      .ui-input,
+      .ui-textarea {
+        background-color: #333;
+        border: 1px solid #888;
+        color: white;
+        padding: 8px;
+        border-radius: 5px;
+        width: 300px;
+        margin-right: 10px;
+        font-family: sans-serif;
+      }
+      .ui-textarea {
+        height: 60px;
+      }
+      .ui-button {
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        height: fit-content;
+      }
+    </style>
+
+    <script>
+      // //변경됨: 스크롤 기능을 위한 새로운 컴포넌트
+      AFRAME.registerComponent("scrollable-text", {
+        schema: {
+          speed: { type: "number", default: 0.001 }, // 스크롤 속도
+        },
+        init: function () {
+          this.textPosition = this.el.object3D.position;
+          this.initialY = this.textPosition.y; // 초기 Y위치 저장
+          this.el.sceneEl.canvas.addEventListener(
+            "wheel",
+            this.onWheel.bind(this)
+          );
+        },
+        onWheel: function (event) {
+          // 마우스 휠의 움직임에 따라 y 위치를 변경
+          const scrollAmount = event.deltaY * this.data.speed;
+          this.textPosition.y -= scrollAmount;
+        },
+        resetScroll: function () {
+          // 스크롤 위치를 초기화하는 함수
+          this.textPosition.y = this.initialY;
+        },
+      });
+
+      AFRAME.registerComponent("proximity-dialog", {
+        schema: {
+          player: { type: "selector", default: "#camera" },
+          distance: { type: "number", default: 7 },
+        },
+        init: function () {
+          this.chatBox = document.querySelector("#chat-ui");
+          this.botWorldPosition = new THREE.Vector3();
+          this.playerWorldPosition = new THREE.Vector3();
+        },
+        tick: function () {
+          const player = this.data.player;
+          if (!player || !this.chatBox) return;
+          this.el.object3D.getWorldPosition(this.botWorldPosition);
+          player.object3D.getWorldPosition(this.playerWorldPosition);
+          const distance = this.botWorldPosition.distanceTo(
+            this.playerWorldPosition
+          );
+          const isInside = distance <= this.data.distance;
+          this.chatBox.setAttribute("visible", isInside);
+        },
+      });
+    </script>
   </head>
   <body>
-    <script>
-      async function include(id, file) {
-        const res = await fetch(file);
-        document.getElementById(id).innerHTML = await res.text();
-      }
-      include("include-chatbox", "chatbox.html");
-      include("include-background", "background.html");
-      include("include-ai", "ai.html");
-      include("include-camera", "camera.html");
-    </script>
+    <div id="character-settings-container" class="overlay-ui">
+      <textarea
+        id="character-settings"
+        class="ui-textarea"
+        placeholder="AI의 역할, 성격, 말투 등을 여기에 입력하세요."
+      ></textarea>
+      <button id="settings-save" class="ui-button">Save Settings</button>
+    </div>
 
     <a-scene vr-mode-ui="enabled: true" embedded>
-      <a-assets></a-assets>
+      <a-assets>
+        <a-asset-item id="robot-model" src="robot.glb"></a-asset-item>
+      </a-assets>
+
+      <a-entity id="rig" movement-controls position="0 0 5">
+        <a-entity
+          id="camera"
+          camera
+          look-controls
+          wasd-controls
+          position="0 1.6 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="chat-ui" position="0 1.8 -0.5" visible="true">
+        <a-plane width="1.5" height="1" color="#FFF" opacity="0.95"></a-plane>
+
+        <a-troika-text
+          id="chat-text"
+          value="AI: Hello! This is a test with a new centered layout. This should prevent all clipping issues. If the text becomes long, please use the mouse wheel to scroll down."
+          color="#000"
+          align="center"
+          anchor="center"
+          baseline="center"
+          font-size="0.05"
+          line-height="1.5"
+          width="1.4"
+          overflow-wrap="break-word"
+          position="0 0 0.01"
+          clip-rect="-0.7, -0.5, 0.7, 0.5"
+          scrollable-text
+        ></a-troika-text>
+      </a-entity>
+
+      <a-entity id="ai-bot" position="0 0 -3" proximity-dialog>
+        <a-gltf-model src="#robot-model"></a-gltf-model>
+        <a-ring
+          color="white"
+          radius-inner="0.5"
+          radius-outer="0.6"
+          rotation="-90 0 0"
+          position="0 0.01 0"
+        ></a-ring>
+      </a-entity>
 
       <a-entity id="include-background"></a-entity>
-      <a-entity id="include-ai"></a-entity>
-      <a-entity id="include-camera"></a-entity>
-      <a-entity id="include-chatbox"></a-entity>
     </a-scene>
+
+    <div id="chat-bar" class="overlay-ui">
+      <input
+        type="text"
+        id="chat-input"
+        class="ui-input"
+        placeholder="Enter message..."
+      />
+      <button id="send-button" class="ui-button">Send</button>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        async function include(id, file) {
+          const res = await fetch(file);
+          const target = document.getElementById(id);
+          if (target) {
+            target.innerHTML = await res.text();
+          }
+        }
+        include("include-background", "background.html");
+
+        const chatInput = document.getElementById("chat-input");
+        const sendButton = document.getElementById("send-button");
+        const settingsInput = document.getElementById("character-settings");
+        const settingsSaveButton = document.getElementById("settings-save");
+        const aframeText = document.getElementById("chat-text");
+
+        let geminiApiKey = "AIzaSyAmIAQeVjjUiCd78hZU8gqDGoGb1TMNcog";
+        let characterSettings = "";
+        let chatHistory = "AI: Hello!"; // //변경됨: 이제 배열이 아닌 단일 문자열로 관리
+
+        settingsSaveButton.addEventListener("click", () => {
+          characterSettings = settingsInput.value;
+          if (characterSettings) alert("Character settings saved.");
+        });
+
+        // //변경됨: 채팅 로그를 업데이트하는 로직 변경
+        function updateChatLog(newText) {
+          chatHistory = newText;
+          aframeText.setAttribute("troika-text", "value", chatHistory);
+          // 새 메시지가 오면 스크롤을 맨 위로 초기화
+          aframeText.components["scrollable-text"]?.resetScroll();
+        }
+
+        async function callGeminiAPI(message, currentHistory) {
+          if (!geminiApiKey || geminiApiKey.startsWith("여기에")) {
+            throw new Error("API Key is not set in the code.");
+          }
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+
+          let prompt = `Continue the conversation based on this history:\n\n${currentHistory}\n\nUser: ${message}\nAI:`;
+          if (characterSettings) {
+            prompt = `You are a character with these settings: "${characterSettings}".
+            Continue the conversation based on this history:\n\n${currentHistory}\n\nUser: ${message}\nAI:`;
+          }
+
+          const requestBody = { contents: [{ parts: [{ text: prompt }] }] };
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || "Unknown API error.");
+          }
+
+          const data = await response.json();
+          return data.candidates[0].content.parts[0].text.trim();
+        }
+
+        // //변경됨: 메시지 전송 로직 변경
+        async function sendMessage() {
+          const message = chatInput.value;
+          if (message.trim() === "") return;
+
+          const userMessage = `You: ${message}`;
+          const currentHistory = `${chatHistory}\n${userMessage}`;
+          updateChatLog(currentHistory); // 먼저 사용자 메시지 표시
+          chatInput.value = "";
+
+          const thinkingMessage = `${currentHistory}\nAI: thinking...`;
+          updateChatLog(thinkingMessage); // 'thinking' 메시지 표시
+
+          try {
+            const aiResponse = await callGeminiAPI(message, currentHistory);
+            const newHistory = `${currentHistory}\nAI: ${aiResponse}`;
+            updateChatLog(newHistory);
+          } catch (error) {
+            const errorHistory = `${currentHistory}\nError: ${error.message}`;
+            updateChatLog(errorHistory);
+          }
+        }
+
+        sendButton.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keyup", function (event) {
+          if (event.key === "Enter") {
+            sendMessage();
+          }
+        });
+      });
+    </script>
   </body>
 </html>
