@@ -5,8 +5,8 @@
     <title>VR</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@6.1.1/dist/aframe-extras.controls.min.js"></script>
     <script src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
       .overlay-ui {
@@ -54,26 +54,23 @@
     </style>
 
     <script>
-      // //변경됨: 스크롤 기능을 위한 새로운 컴포넌트
       AFRAME.registerComponent("scrollable-text", {
         schema: {
-          speed: { type: "number", default: 0.001 }, // 스크롤 속도
+          speed: { type: "number", default: 0.001 },
         },
         init: function () {
           this.textPosition = this.el.object3D.position;
-          this.initialY = this.textPosition.y; // 초기 Y위치 저장
+          this.initialY = this.textPosition.y;
           this.el.sceneEl.canvas.addEventListener(
             "wheel",
             this.onWheel.bind(this)
           );
         },
         onWheel: function (event) {
-          // 마우스 휠의 움직임에 따라 y 위치를 변경
           const scrollAmount = event.deltaY * this.data.speed;
           this.textPosition.y -= scrollAmount;
         },
         resetScroll: function () {
-          // 스크롤 위치를 초기화하는 함수
           this.textPosition.y = this.initialY;
         },
       });
@@ -100,6 +97,34 @@
           this.chatBox.setAttribute("visible", isInside);
         },
       });
+      function wrapText(
+        text,
+        maxWidth,
+        fontSize,
+        lineHeight,
+        characterWidthFactor = 0.5
+      ) {
+        const charsPerUnit = maxWidth / (fontSize * characterWidthFactor); 
+        let wrappedText = "";
+        let currentLine = "";
+        const words = text.split(" "); 
+
+        for (const word of words) {
+     
+          if (
+            (currentLine + word).length > charsPerUnit &&
+            currentLine.length > 0
+          ) {
+            wrappedText += currentLine.trim() + "\n"; 
+            currentLine = word + " "; 
+          } else {
+            currentLine += word + " ";
+          }
+        }
+        wrappedText += currentLine.trim();
+
+        return wrappedText;
+      }
     </script>
   </head>
   <body>
@@ -129,26 +154,22 @@
 
       <a-entity id="chat-ui" position="0 1.8 -0.5" visible="true">
         <a-plane width="1.5" height="1" color="#FFF" opacity="0.95"></a-plane>
-
         <a-troika-text
           id="chat-text"
-          value="AI: Hello! This is a test with a new centered layout. This should prevent all clipping issues. If the text becomes long, please use the mouse wheel to scroll down."
+          value="AI : Hello"
           color="#000"
-          align="center"
-          anchor="center"
-          baseline="center"
+          align="left"
+          anchor="left"
+          baseline="top"
           font-size="0.05"
-          line-height="1.5"
           width="1.4"
-          overflow-wrap="break-word"
-          position="0 0 0.01"
-          clip-rect="-0.7, -0.5, 0.7, 0.5"
+          position="-0.65 0.45 0.01"
           scrollable-text
         ></a-troika-text>
       </a-entity>
 
       <a-entity id="ai-bot" position="0 0 -3" proximity-dialog>
-        <a-gltf-model src="#robot-model"></a-gltf-model>
+        <a-gltf-model src="#robot-model" animation-mixer="clip: Armature|Idle|Layer0; loop: repeat;"></a-gltf-model>
         <a-ring
           color="white"
           radius-inner="0.5"
@@ -190,18 +211,37 @@
 
         let geminiApiKey = "AIzaSyAmIAQeVjjUiCd78hZU8gqDGoGb1TMNcog";
         let characterSettings = "";
-        let chatHistory = "AI: Hello!"; // //변경됨: 이제 배열이 아닌 단일 문자열로 관리
+        let chatHistory = "AI: Hello!";
 
         settingsSaveButton.addEventListener("click", () => {
           characterSettings = settingsInput.value;
           if (characterSettings) alert("Character settings saved.");
         });
 
-        // //변경됨: 채팅 로그를 업데이트하는 로직 변경
         function updateChatLog(newText) {
-          chatHistory = newText;
-          aframeText.setAttribute("troika-text", "value", chatHistory);
-          // 새 메시지가 오면 스크롤을 맨 위로 초기화
+          chatHistory = newText; // chatHistory는 전체 대화 내용을 유지
+
+          // a-troika-text의 width, font-size, line-height 값을 가져옵니다.
+          const TROIKA_TEXT_WIDTH = parseFloat(
+            aframeText.getAttribute("width")
+          );
+          const FONT_SIZE = parseFloat(aframeText.getAttribute("font-size"));
+          const LINE_HEIGHT = parseFloat(
+            aframeText.getAttribute("line-height")
+          );
+
+          // chatHistory 전체에 대해 줄바꿈을 적용합니다.
+          const wrappedMessage = wrapText(
+            chatHistory,
+            TROIKA_TEXT_WIDTH,
+            FONT_SIZE,
+            LINE_HEIGHT
+          );
+
+          // 줄바꿈된 메시지를 a-troika-text의 value로 설정합니다.
+          aframeText.setAttribute("troika-text", "value", wrappedMessage);
+
+          // 스크롤 리셋 컴포넌트가 있다면 호출
           aframeText.components["scrollable-text"]?.resetScroll();
         }
 
@@ -233,18 +273,17 @@
           return data.candidates[0].content.parts[0].text.trim();
         }
 
-        // //변경됨: 메시지 전송 로직 변경
         async function sendMessage() {
           const message = chatInput.value;
           if (message.trim() === "") return;
 
           const userMessage = `You: ${message}`;
           const currentHistory = `${chatHistory}\n${userMessage}`;
-          updateChatLog(currentHistory); // 먼저 사용자 메시지 표시
+          updateChatLog(currentHistory);
           chatInput.value = "";
 
           const thinkingMessage = `${currentHistory}\nAI: thinking...`;
-          updateChatLog(thinkingMessage); // 'thinking' 메시지 표시
+          updateChatLog(thinkingMessage);
 
           try {
             const aiResponse = await callGeminiAPI(message, currentHistory);
