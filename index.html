@@ -54,26 +54,7 @@
     </style>
 
     <script>
-      AFRAME.registerComponent("scrollable-text", {
-        schema: {
-          speed: { type: "number", default: 0.001 },
-        },
-        init: function () {
-          this.textPosition = this.el.object3D.position;
-          this.initialY = this.textPosition.y;
-          this.el.sceneEl.canvas.addEventListener(
-            "wheel",
-            this.onWheel.bind(this)
-          );
-        },
-        onWheel: function (event) {
-          const scrollAmount = event.deltaY * this.data.speed;
-          this.textPosition.y -= scrollAmount;
-        },
-        resetScroll: function () {
-          this.textPosition.y = this.initialY;
-        },
-      });
+      // AFRAME.registerComponent("scrollable-text", { ... }); // 스크롤 컴포넌트 제거
 
       AFRAME.registerComponent("proximity-dialog", {
         schema: {
@@ -97,26 +78,27 @@
           this.chatBox.setAttribute("visible", isInside);
         },
       });
+
+      // wrapText 함수는 계속 필요합니다. 새로운 대화도 줄바꿈이 필요할 수 있습니다.
       function wrapText(
         text,
         maxWidth,
         fontSize,
         lineHeight,
-        characterWidthFactor = 0.5
+        characterWidthFactor = 0.8
       ) {
-        const charsPerUnit = maxWidth / (fontSize * characterWidthFactor); 
+        const charsPerUnit = maxWidth / (fontSize * characterWidthFactor);
         let wrappedText = "";
         let currentLine = "";
-        const words = text.split(" "); 
+        const words = text.split(" ");
 
         for (const word of words) {
-     
           if (
             (currentLine + word).length > charsPerUnit &&
             currentLine.length > 0
           ) {
-            wrappedText += currentLine.trim() + "\n"; 
-            currentLine = word + " "; 
+            wrappedText += currentLine.trim() + "\n";
+            currentLine = word + " ";
           } else {
             currentLine += word + " ";
           }
@@ -156,15 +138,15 @@
         <a-plane width="1.5" height="1" color="#FFF" opacity="0.95"></a-plane>
         <a-troika-text
           id="chat-text"
-          value="AI : Hello"
+          value="Input the any Message"
           color="#000"
           align="left"
           anchor="left"
           baseline="top"
           font-size="0.05"
           width="1.4"
-          position="-0.65 0.45 0.01"
-          scrollable-text
+          height="0.9"           depthOffset="1"        position="-0.65 0.45 0.01"
+          white-space="normal"   line-height="1.2"
         ></a-troika-text>
       </a-entity>
 
@@ -211,17 +193,19 @@
 
         let geminiApiKey = "AIzaSyAmIAQeVjjUiCd78hZU8gqDGoGb1TMNcog";
         let characterSettings = "";
-        let chatHistory = "AI: Hello!";
+        // chatHistory를 Gemini API 호출 시에만 사용하고, 화면 표시용 변수를 따로 둡니다.
+        let fullChatHistoryForGemini = "AI: Hello!"; // Gemini 모델에 전달할 전체 대화 기록
+        let displayedChat = "AI: Hello!"; // 화면에 표시될 대화
 
         settingsSaveButton.addEventListener("click", () => {
           characterSettings = settingsInput.value;
           if (characterSettings) alert("Character settings saved.");
         });
 
-        function updateChatLog(newText) {
-          chatHistory = newText; // chatHistory는 전체 대화 내용을 유지
+        // updateChatLog 함수를 수정하여 화면에 표시될 내용만 업데이트
+        function updateChatLog(newDisplayedText) {
+          displayedChat = newDisplayedText; // 화면 표시용 변수만 업데이트
 
-          // a-troika-text의 width, font-size, line-height 값을 가져옵니다.
           const TROIKA_TEXT_WIDTH = parseFloat(
             aframeText.getAttribute("width")
           );
@@ -230,31 +214,27 @@
             aframeText.getAttribute("line-height")
           );
 
-          // chatHistory 전체에 대해 줄바꿈을 적용합니다.
           const wrappedMessage = wrapText(
-            chatHistory,
+            displayedChat, // 화면 표시용 변수를 사용
             TROIKA_TEXT_WIDTH,
             FONT_SIZE,
             LINE_HEIGHT
           );
 
-          // 줄바꿈된 메시지를 a-troika-text의 value로 설정합니다.
           aframeText.setAttribute("troika-text", "value", wrappedMessage);
-
-          // 스크롤 리셋 컴포넌트가 있다면 호출
-          aframeText.components["scrollable-text"]?.resetScroll();
+          // 스크롤 리셋 컴포넌트 호출은 더 이상 필요 없습니다.
         }
 
-        async function callGeminiAPI(message, currentHistory) {
+        async function callGeminiAPI(message, currentHistoryForAPI) {
           if (!geminiApiKey || geminiApiKey.startsWith("여기에")) {
             throw new Error("API Key is not set in the code.");
           }
           const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
 
-          let prompt = `Continue the conversation based on this history:\n\n${currentHistory}\n\nUser: ${message}\nAI:`;
+          let prompt = `Continue the conversation based on this history:\n\n${currentHistoryForAPI}\n\nUser: ${message}\nAI:`;
           if (characterSettings) {
             prompt = `You are a character with these settings: "${characterSettings}".
-            Continue the conversation based on this history:\n\n${currentHistory}\n\nUser: ${message}\nAI:`;
+              Continue the conversation based on this history:\n\n${currentHistoryForAPI}\n\nUser: ${message}\nAI:`;
           }
 
           const requestBody = { contents: [{ parts: [{ text: prompt }] }] };
@@ -278,19 +258,28 @@
           if (message.trim() === "") return;
 
           const userMessage = `You: ${message}`;
-          const currentHistory = `${chatHistory}\n${userMessage}`;
-          updateChatLog(currentHistory);
+          // Gemini API에 전달할 전체 대화 기록 업데이트
+          fullChatHistoryForGemini = `${fullChatHistoryForGemini}\n${userMessage}`;
+
+          // 화면에는 사용자 메시지만 표시
+          updateChatLog(userMessage);
           chatInput.value = "";
 
-          const thinkingMessage = `${currentHistory}\nAI: thinking...`;
+          // 'thinking...' 메시지도 화면에 표시
+          const thinkingMessage = `${userMessage}\nAI: thinking...`;
           updateChatLog(thinkingMessage);
 
           try {
-            const aiResponse = await callGeminiAPI(message, currentHistory);
-            const newHistory = `${currentHistory}\nAI: ${aiResponse}`;
-            updateChatLog(newHistory);
+            const aiResponse = await callGeminiAPI(message, fullChatHistoryForGemini);
+
+            // Gemini API에 전달할 전체 대화 기록에 AI 응답 추가
+            fullChatHistoryForGemini = `${fullChatHistoryForGemini}\nAI: ${aiResponse}`;
+
+            // 화면에는 사용자 메시지와 AI 응답만 표시 (이전 내용 대체)
+            const newDisplayedChat = `${userMessage}\nAI: ${aiResponse}`;
+            updateChatLog(newDisplayedChat);
           } catch (error) {
-            const errorHistory = `${currentHistory}\nError: ${error.message}`;
+            const errorHistory = `${userMessage}\nError: ${error.message}`;
             updateChatLog(errorHistory);
           }
         }

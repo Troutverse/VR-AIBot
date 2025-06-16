@@ -1,7 +1,37 @@
-<a-plane rotation="-90 0 0" width="50" height="50" color="#555555"></a-plane>
-<a-sky color="#87CEEB"></a-sky>
-<a-box position="-5 2 -10" depth="4" height="4" width="4" color="#a9a9a9"></a-box>
-<a-box position="0 3 -15" depth="5" height="6" width="5" color="#808080"></a-box>
-<a-box position="6 2.5 -12" depth="4" height="5" width="4" color="#696969"></a-box>
-<a-cylinder position="3 1 -5" radius="0.1" height="2" color="#333"></a-cylinder>
-<a-sphere position="3 2.2 -5" radius="0.2" color="yellow" emissive="yellow"></a-sphere>
+<a-plane
+  rotation="-90 0 0"
+  width="50"
+  height="50"
+  src="ground.jpg"
+  repeat="30 30"
+></a-plane>
+<a-sky src="sky.jpg"></a-sky>
+
+<a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+<a-light
+  type="directional"
+  color="#FFF"
+  intensity="0.1"
+  position="-1 2 1"
+></a-light>
+<a-light
+  type="point"
+  color="#FFFFFF"
+  intensity="0.5"
+  position="0 5 -5"
+></a-light>
+<a-gltf-model
+  src="building.glb"
+  scale="0.1 0.1 0.1"
+  position="-5 0 -10"
+></a-gltf-model>
+<a-gltf-model
+  src="building2.glb"
+  scale="0.1 0.1 0.1"
+  position="5 0 -10"
+></a-gltf-model>
+<a-gltf-model
+  src="light.glb"
+  scale="1 1 1"
+  position="3 0 -5"
+></a-gltf-model>
