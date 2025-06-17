@@ -7,7 +7,7 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-
+    <script src="https://unpkg.com/aframe-intext-input@1.0.0/dist/aframe-intext-input.min.js"></script>
     <style>
       .overlay-ui {
         position: absolute;
@@ -54,8 +54,6 @@
     </style>
 
     <script>
-      // AFRAME.registerComponent("scrollable-text", { ... }); // 스크롤 컴포넌트 제거
-
       AFRAME.registerComponent("proximity-dialog", {
         schema: {
           player: { type: "selector", default: "#camera" },
@@ -76,6 +74,33 @@
           );
           const isInside = distance <= this.data.distance;
           this.chatBox.setAttribute("visible", isInside);
+        },
+      });
+      AFRAME.registerComponent("proximity-input", {
+        schema: {
+          player: { type: "selector", default: "#camera" },
+          distance: { type: "number", default: 7 },
+        },
+        init: function () {
+          this.vrInputBox = document.querySelector("#vr-input-ui"); // 새로 만든 VR 입력 UI
+          this.botWorldPosition = new THREE.Vector3();
+          this.playerWorldPosition = new THREE.Vector3();
+        },
+        tick: function () {
+          const player = this.data.player;
+          // VR 모드일 때만 동작하도록 조건을 추가합니다.
+          const isInVR = this.el.sceneEl.is('vr-mode');
+          if (!player || !this.vrInputBox || !isInVR) {
+            this.vrInputBox.setAttribute("visible", false);
+            return;
+          }
+          this.el.object3D.getWorldPosition(this.botWorldPosition);
+          player.object3D.getWorldPosition(this.playerWorldPosition);
+          const distance = this.botWorldPosition.distanceTo(
+            this.playerWorldPosition
+          );
+          const isInside = distance <= this.data.distance;
+          this.vrInputBox.setAttribute("visible", isInside);
         },
       });
 
@@ -132,6 +157,7 @@
           wasd-controls
           position="0 1.6 0"
         ></a-entity>
+         <a-cursor raycaster="objects: .clickable"></a-cursor> </a-entity>
       </a-entity>
 
       <a-entity id="chat-ui" position="0 1.8 -0.5" visible="true">
@@ -145,13 +171,37 @@
           baseline="top"
           font-size="0.05"
           width="1.4"
-          height="0.9"           depthOffset="1"        position="-0.65 0.45 0.01"
-          white-space="normal"   line-height="1.2"
+          height="0.9"
+          depthOffset="1"
+          position="-0.65 0.45 0.01"
+          white-space="normal"
+          line-height="1.2"
         ></a-troika-text>
       </a-entity>
+      <a-entity id="vr-input-ui" position="0 1.25 -0.5" visible="false">
+        <a-entity
+          id="vr-chat-input"
+          intext-input="value:; placeholder: Enter message with controller...; width: 1.1; height: 0.15;"
+          position="-0.2 0 0.01"
+          class="clickable"
+        ></a-entity>
+        <a-entity id="vr-send-button" class="clickable" position="0.5 0 0">
+          <a-plane width="0.3" height="0.15" color="#4a90e2"></a-plane>
+          <a-text
+            value="Send"
+            align="center"
+            color="white"
+            width="1"
+            position="0 0 0.01"
+          ></a-text>
+        </a-entity>
+      </a-entity>
 
-      <a-entity id="ai-bot" position="0 0 -3" proximity-dialog>
-        <a-gltf-model src="#robot-model" animation-mixer="clip: Armature|Idle|Layer0; loop: repeat;"></a-gltf-model>
+      <a-entity id="ai-bot" position="0 0 -3" proximity-dialog proximity-input>
+        <a-gltf-model
+          src="#robot-model"
+          animation-mixer="clip: Armature|Idle|Layer0; loop: repeat;"
+        ></a-gltf-model>
         <a-ring
           color="white"
           radius-inner="0.5"
@@ -222,7 +272,7 @@
           );
 
           aframeText.setAttribute("troika-text", "value", wrappedMessage);
-          // 스크롤 리셋 컴포넌트 호출은 더 이상 필요 없습니다.
+          
         }
 
         async function callGeminiAPI(message, currentHistoryForAPI) {
@@ -270,7 +320,10 @@
           updateChatLog(thinkingMessage);
 
           try {
-            const aiResponse = await callGeminiAPI(message, fullChatHistoryForGemini);
+            const aiResponse = await callGeminiAPI(
+              message,
+              fullChatHistoryForGemini
+            );
 
             // Gemini API에 전달할 전체 대화 기록에 AI 응답 추가
             fullChatHistoryForGemini = `${fullChatHistoryForGemini}\nAI: ${aiResponse}`;
@@ -289,6 +342,29 @@
           if (event.key === "Enter") {
             sendMessage();
           }
+        });
+        const vrChatInput = document.getElementById("vr-chat-input");
+        const vrSendButton = document.getElementById("vr-send-button");
+        let vrTextMessage = ""; // VR에서 입력된 텍스트를 저장할 변수
+
+        // VR 입력창의 텍스트가 바뀔 때마다 변수에 저장
+        vrChatInput.addEventListener('input-changed', function(evt){
+            vrTextMessage = evt.detail.value;
+        });
+
+        // VR 전송 버튼을 클릭했을 때의 동작
+        vrSendButton.addEventListener('click', function() {
+            if (!vrTextMessage.trim()) return;
+
+            // 1. 보이지 않는 원래 HTML 입력창에 VR 입력창의 텍스트를 넣는다.
+            chatInput.value = vrTextMessage;
+            
+            // 2. 원래 HTML 전송 버튼을 강제로 클릭하여 기존 sendMessage() 함수를 실행시킨다.
+            sendButton.click();
+
+            // 3. VR 입력창과 변수를 초기화한다.
+            vrChatInput.setAttribute('intext-input', 'value', '');
+            vrTextMessage = "";
         });
       });
     </script>
